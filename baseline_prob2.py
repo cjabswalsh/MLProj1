@@ -35,7 +35,6 @@ def train_i_range():
     baseline_err = sklearn.metrics.zero_one_loss(y_valid_M, baseline.predict(x_valid_MF) >= 0.5)
     print(baseline_err)
 
-
 def test_C_vals(x_train_NF, y_train_N, x_valid_MF, y_valid_M):
     C_grid = np.logspace(-9, 6, 31)
 
@@ -117,7 +116,7 @@ def make_train_and_test_row_ids_for_n_fold_cv(
 if __name__ == '__main__':
     x_train_NF, y_train_N = retrieve_data()
 
-    estimator = sklearn.linear_model.LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
+    estimator = sklearn.linear_model.LogisticRegression(C=.01, solver='lbfgs', max_iter=1000)
 
     train_err_K, valid_err_K = train_models_and_calc_scores_for_n_fold_cv(estimator, x_train_NF, y_train_N, 3, 1)
     err_train = np.mean(train_err_K)
