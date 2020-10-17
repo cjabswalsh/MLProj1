@@ -64,7 +64,7 @@ def test_C_vals(x_train_NF, y_train_N, x_valid_MF, y_valid_M):
     print("Best C value is:", C_grid[np.argmin(valid_ERs)])
 
 def retrieve_data ():
-    dataset_path = 'data_digits_8_vs_9_noisy'
+    dataset_path = 'data_sneaker_vs_sandal'
     x_train_df = pd.read_csv(os.path.join(dataset_path, 'x_train.csv'))
     x_train_NF = x_train_df.values
     N, F = x_train_NF.shape
@@ -117,7 +117,13 @@ if __name__ == '__main__':
     x_train_NF, y_train_N = retrieve_data()
 
     estimator = sklearn.linear_model.LogisticRegression(C=.01, solver='lbfgs', max_iter=1000)
+    estimator.fit(x_train_NF, y_train_N)
 
+    coefficients = estimator.coef_
+    image = coefficients.reshape((28,28))
+    plt.imshow(image, cmap='RdYlBu', vmin=-0.5, vmax=0.5)
+    plt.show()
+    
     train_err_K, valid_err_K = train_models_and_calc_scores_for_n_fold_cv(estimator, x_train_NF, y_train_N, 3, 1)
     err_train = np.mean(train_err_K)
     err_valid = np.mean(valid_err_K)

@@ -40,7 +40,7 @@ def train_i_range():
 
     coefficients = classifier.coef_
     image = coefficients.reshape((28,28))
-    plt.imshow([[0, 1], [-0.5, 0.5]], cmap='RdYlBu', vmin=-0.5, vmax=0.5)
+    plt.imshow(image, cmap='RdYlBu', vmin=-0.5, vmax=0.5)
     plt.show()
 
 
