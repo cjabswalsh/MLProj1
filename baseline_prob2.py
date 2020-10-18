@@ -9,32 +9,49 @@ import sklearn.pipeline
 from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.utils._testing import ignore_warnings
 from sklearn.exceptions import ConvergenceWarning
-from performance_metrics import calc_mean_squared_error
+from performance_metrics import (calc_mean_squared_error, calc_ACC, calc_TPR, 
+                                 calc_PPV, calc_TNR, calc_NPV, calc_confusion_matrix_for_probas_and_threshold)
 
-
+# train_i_range runs the standard model splitting data
+# train_cv_model runs cross validation model
 
 @ignore_warnings(category=ConvergenceWarning)
-def train_i_range():
-    dataset_path = 'data_sneaker_vs_sandal'
-    x_all_d = pd.read_csv(os.path.join(dataset_path, 'x_train.csv'))
-    x_all = x_all_d.values
-    A,F = x_all.shape
+def train_i_range(estimator):
+    x_train_NF, y_train_N, x_valid_MF, y_valid_M = get_std_data()
 
-    x_train_NF = x_all[:9000]
-    N = 9000
-    x_valid_MF = x_all[9000:]
-    M = 3000
+    estimator.fit(x_train_NF, y_train_N)
+    
+    err_train = sklearn.metrics.zero_one_loss(y_train_N, estimator.predict(x_train_NF) >= 0.5)
+    err_valid = sklearn.metrics.zero_one_loss(y_valid_M, estimator.predict(x_valid_MF) >= 0.5)
+    
+    yproba1_train_N = estimator.predict_proba(x_train_NF)[:,1]
+    yproba1_valid_M = estimator.predict_proba(x_valid_MF)[:,1]
+    
+    cm_df = calc_confusion_matrix_for_probas_and_threshold(y_train_N, yproba1_train_N, .5)
+    print(cm_df)
+    print("TPR: ", calc_TPR(y_train_N, yproba1_train_N >= 0.5))
+    print("PPV: ", calc_PPV(y_train_N, yproba1_train_N >=0.5))
+    print("TNR: ", calc_TNR(y_train_N, yproba1_train_N >=0.5))
+    print("NPV: ", calc_NPV(y_train_N, yproba1_train_N >=0.5))
+    print("Training Error:", err_train)
+    print("Validation Error:", err_valid)
 
-    y_all_d = pd.read_csv(os.path.join(dataset_path, 'y_train.csv'))
-    y_all = y_all_d.values.reshape((A,))
-    y_train_N = y_all[:9000]
-    y_valid_M = y_all[9000:]
+def train_cv_model(estimator):
+    x_train_NF, y_train_N = get_cv_data()
 
-    baseline = sklearn.linear_model.LogisticRegression(C=1.0, solver='lbfgs', max_iter=1000)
-    baseline.fit(x_train_NF, y_train_N)
-    baseline_err = sklearn.metrics.zero_one_loss(y_valid_M, baseline.predict(x_valid_MF) >= 0.5)
-    print(baseline_err)
+    estimator.fit(x_train_NF, y_train_N)
 
+    coefficients = estimator.coef_
+    image = coefficients.reshape((28,28))
+    plt.imshow(image, cmap='RdYlBu', vmin=-0.5, vmax=0.5)
+    plt.show()
+    
+    train_err_K, valid_err_K = train_models_and_calc_scores_for_n_fold_cv(estimator, x_train_NF, y_train_N, 3, 1)
+    err_train = np.mean(train_err_K)
+    err_valid = np.mean(valid_err_K)
+    
+    print(err_train, err_valid)
+    
 def test_C_vals(x_train_NF, y_train_N, x_valid_MF, y_valid_M):
     C_grid = np.logspace(-9, 6, 31)
 
@@ -63,7 +80,7 @@ def test_C_vals(x_train_NF, y_train_N, x_valid_MF, y_valid_M):
 
     print("Best C value is:", C_grid[np.argmin(valid_ERs)])
 
-def retrieve_data ():
+def get_cv_data ():
     dataset_path = 'data_sneaker_vs_sandal'
     x_train_df = pd.read_csv(os.path.join(dataset_path, 'x_train.csv'))
     x_train_NF = x_train_df.values
@@ -73,6 +90,24 @@ def retrieve_data ():
     y_train_N = y_train_d.values.reshape((N,))
     
     return x_train_NF, y_train_N
+
+def get_std_data ():
+    dataset_path = 'data_sneaker_vs_sandal'
+    x_all_d = pd.read_csv(os.path.join(dataset_path, 'x_train.csv'))
+    x_all = x_all_d.values
+    A, F = x_all.shape
+
+    x_train_NF = x_all[:9000]
+    N = 9000
+    x_valid_MF = x_all[9000:]
+    M = 3000
+
+    y_all_d = pd.read_csv(os.path.join(dataset_path, 'y_train.csv'))
+    y_all = y_all_d.values.reshape((A,))
+    y_train_N = y_all[:9000]
+    y_valid_M = y_all[9000:]
+    
+    return x_train_NF, y_train_N, x_valid_MF, y_valid_M
 
 def train_models_and_calc_scores_for_n_fold_cv(
         estimator, x_NF, y_N, n_folds=3, random_state=0):
@@ -114,19 +149,5 @@ def make_train_and_test_row_ids_for_n_fold_cv(
     return train_ids_per_fold, test_ids_per_fold
 
 if __name__ == '__main__':
-    x_train_NF, y_train_N = retrieve_data()
-
     estimator = sklearn.linear_model.LogisticRegression(C=.01, solver='lbfgs', max_iter=1000)
-    estimator.fit(x_train_NF, y_train_N)
-
-    coefficients = estimator.coef_
-    image = coefficients.reshape((28,28))
-    plt.imshow(image, cmap='RdYlBu', vmin=-0.5, vmax=0.5)
-    plt.show()
-    
-    train_err_K, valid_err_K = train_models_and_calc_scores_for_n_fold_cv(estimator, x_train_NF, y_train_N, 3, 1)
-    err_train = np.mean(train_err_K)
-    err_valid = np.mean(valid_err_K)
-    
-    print(err_train, err_valid)
-    # test_C_vals(x_train_NF, y_train_N, x_valid_MF, y_valid_M)
+    train_i_range(estimator)
