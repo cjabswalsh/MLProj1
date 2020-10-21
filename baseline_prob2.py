@@ -147,7 +147,18 @@ def make_train_and_test_row_ids_for_n_fold_cv(
     test_ids_per_fold = test_array
 
     return train_ids_per_fold, test_ids_per_fold
-
+    
+def make_pipeline():
+    pipeline = sklearn.pipeline.Pipeline(
+        steps=[
+         ('rescaler', sklearn.preprocessing.MinMaxScaler()),
+         ('poly_transformer', sklearn.preprocessing.PolynomialFeatures(degree=1, include_bias=False)),
+         ('logistic_regr', sklearn.linear_model.LogisticRegression(C=.01, solver='lbfgs', max_iter=1000)),
+        ])
+    return pipeline
+        
 if __name__ == '__main__':
-    estimator = sklearn.linear_model.LogisticRegression(C=.01, solver='lbfgs', max_iter=1000)
+    estimator = make_pipeline()
+    # train_cv_model(estimator)
     train_i_range(estimator)
+    
