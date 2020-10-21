@@ -12,11 +12,11 @@ from sklearn.exceptions import ConvergenceWarning
 from performance_metrics import (calc_mean_squared_error, calc_ACC, calc_TPR, 
                                  calc_PPV, calc_TNR, calc_NPV, calc_confusion_matrix_for_probas_and_threshold)
 
-# train_i_range runs the standard model splitting data
+# train_static_val runs the standard model splitting data
 # train_cv_model runs cross validation model
 
 @ignore_warnings(category=ConvergenceWarning)
-def train_i_range(estimator):
+def train_static_val(estimator):
     x_train_NF, y_train_N, x_valid_MF, y_valid_M = get_std_data()
 
     estimator.fit(x_train_NF, y_train_N)
@@ -39,12 +39,12 @@ def train_i_range(estimator):
 def train_cv_model(estimator):
     x_train_NF, y_train_N = get_cv_data()
 
-    estimator.fit(x_train_NF, y_train_N)
-
-    coefficients = estimator.coef_
-    image = coefficients.reshape((28,28))
-    plt.imshow(image, cmap='RdYlBu', vmin=-0.5, vmax=0.5)
-    plt.show()
+    # estimator.fit(x_train_NF, y_train_N)
+    #
+    # coefficients = estimator.coef_
+    # image = coefficients.reshape((28,28))
+    # plt.imshow(image, cmap='RdYlBu', vmin=-0.5, vmax=0.5)
+    # plt.show()
     
     train_err_K, valid_err_K = train_models_and_calc_scores_for_n_fold_cv(estimator, x_train_NF, y_train_N, 3, 1)
     err_train = np.mean(train_err_K)
@@ -160,5 +160,5 @@ def make_pipeline():
 if __name__ == '__main__':
     estimator = make_pipeline()
     # train_cv_model(estimator)
-    train_i_range(estimator)
+    train_static_val(estimator)
     
